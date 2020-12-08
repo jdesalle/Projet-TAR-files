@@ -1,5 +1,6 @@
 #include "lib_tar.h"
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 /**
  * Checks whether the archive is valid.
@@ -30,6 +31,13 @@ int check_archive(int tar_fd) {
  *         any other value otherwise.
  */
 int exists(int tar_fd, char *path) {
+	 tar_header_t *current=(tar_header_t *) malloc(sizeof(tar_header_t));
+    if(read(tar_fd,(void *) current,sizeof(tar_header_t))==-1)
+		printf("read n1");
+	if(strcmp(current->name,path)==0){return 0;}
+	while(get_next_header(tar_fd,current)){
+		if(strcmp(current->name,path)==0){return 0;}
+		}
     return 0;
 }
 
@@ -58,7 +66,7 @@ int is_dir(int tar_fd, char *path) {
 int is_file(int tar_fd, char *path) {
     tar_header_t *current=(tar_header_t *) malloc(sizeof(tar_header_t));
     if(read(tar_fd,(void *) current,sizeof(tar_header_t))==-1)
-	printf("read n1");
+		printf("read n1");
     printf("%s\n",current->name);
     get_next_header(tar_fd,current);
     printf("%s\n",current->name);
