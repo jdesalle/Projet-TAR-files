@@ -59,9 +59,11 @@ int is_file(int tar_fd, char *path) {
     tar_header_t *current=(tar_header_t *) malloc(sizeof(tar_header_t));
     if(read(tar_fd,(void *) current,sizeof(tar_header_t))==-1)
 	printf("read n1");
-    printf("%s\n",(*current).name);
-    read(tar_fd,(void *)current,sizeof(tar_header_t));
-    printf("%s\n",(*current).name);
+    printf("%s\n",current->name);
+    get_next_header(tar_fd,current);
+    printf("%s\n",current->name);
+    get_next_header(tar_fd,current);
+    printf("%s\n",current->name);
     return 0;
 }
 
@@ -116,3 +118,13 @@ ssize_t read_file(int tar_fd, char *path, size_t offset, uint8_t *dest, size_t *
     return 0;
 }
 
+int get_next_header(int tar_fd, tar_header_t *current){
+    int size=TAR_INT(current->size);
+    lseek(tar_fd, size,SEEK_CUR);
+    if(read(tar_fd,(void *) current,sizeof(tar_header_t))==-1)
+        printf("read n1");
+    printf("%ld\n",TAR_INT(current->size));
+    return 0;
+}
+
+ 
