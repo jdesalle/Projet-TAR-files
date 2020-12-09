@@ -64,9 +64,11 @@ int is_dir(int tar_fd, char *path) {
  *         any other value otherwise.
  */
 int is_file(int tar_fd, char *path) {
+    if(!exists(tar_fd,path)
+        return 0;
     tar_header_t *current=(tar_header_t *) malloc(sizeof(tar_header_t));
     if(read(tar_fd,(void *) current,sizeof(tar_header_t))==-1)
-		printf("read n1");
+		fprintf(stderr,"error reading n1");
     printf("%s\n",current->name);
     get_next_header(tar_fd,current);
     printf("%s\n",current->name);
@@ -84,6 +86,14 @@ int is_file(int tar_fd, char *path) {
  *         any other value otherwise.
  */
 int is_symlink(int tar_fd, char *path) {
+    if(!exists(tar_fd,path)
+        return 0;
+    lseek(tar_fd, -sizeof(tar_header_t),SEEK_CUR);
+    tar_header_t current;
+    if(read(tar_fd,(void *) current,sizeof(tar_header_t))==-1)
+        fprintf(stderr,"error reading n1");
+    if (current.typeflag==SYMTYPE)
+        return 1;
     return 0;
 }
 
