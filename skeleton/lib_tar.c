@@ -60,7 +60,7 @@ int exists(int tar_fd, char *path) {
  */
 int is_dir(int tar_fd, char *path) {
     if(!exists(tar_fd,path))
-        return 0;
+        return -1;
     lseek(tar_fd, -sizeof(tar_header_t),SEEK_CUR);
     tar_header_t *current=(tar_header_t *) malloc(sizeof(tar_header_t));
     read(tar_fd,(void *) current,sizeof(tar_header_t));
@@ -102,7 +102,7 @@ int is_file(int tar_fd, char *path) {
  */
 int is_symlink(int tar_fd, char *path) {
     if(!exists(tar_fd,path))
-        return 0;
+        return -1;
     lseek(tar_fd, -sizeof(tar_header_t),SEEK_CUR);
     tar_header_t *current=(tar_header_t *) malloc(sizeof(tar_header_t));
     if(read(tar_fd,(void *) current,sizeof(tar_header_t))==-1)
@@ -127,6 +127,27 @@ int is_symlink(int tar_fd, char *path) {
  *         any other value otherwise.
  */
 int list(int tar_fd, char *path, char **entries, size_t *no_entries) {
+	if(!exists(tar_fd,path)){
+	return 0;}
+	lseek(tar_fd,0,SEEK_SET);
+	if(is_dir(tar_fd,path)){
+		tar_header_t *current=(tar_header_t *) malloc(sizeof(tar_header_t));
+		if(read(tar_fd,(void *) current,sizeof(tar_header_t))==-1)
+			fprintf(stderr,"error reading n1");
+		for(int i=0;i<*no_entries;i++){
+			entries[i]=current->name;
+			printf("the file %d , is %s \n",i,current->name);
+			get_next_header(tar_fd,current);
+			
+			}
+		return 2;
+		}
+	lseek(tar_fd,0,SEEK_SET);
+	if(is_symlink(tar_fd,path)){return 1;}
+	lseek(tar_fd,0,SEEK_SET);
+	if(is_file(tar_fd,path)){entries[0]=path;
+		return 3;}
+	
     return 0;
 }
 
