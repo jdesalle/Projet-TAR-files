@@ -30,15 +30,44 @@ int check_archive(int tar_fd) {
  * @return zero if no entry at the given path exists in the archive,
  *         any other value otherwise.
  */
+int findSLashes(char *path, char c){
+	 int i;
+	 int count = 0;
+	 for(i= 0;path[i];i++){
+		 if(path[i] ==c){
+			count ++;}
+		
+		 }
+	return count;
+	 
+	 }
 int exists(int tar_fd, char *path) {
+	int slashes = findSLashes(path,'/');
 	 tar_header_t *current=(tar_header_t *) malloc(sizeof(tar_header_t));
     if(read(tar_fd,(void *) current,sizeof(tar_header_t))==-1)
 		printf("read n1");
+	
+	
+	int size1 = sizeof(current->name);
 	if(strcmp(current->name,path)==0){return 0;}
-	while(get_next_header(tar_fd,current)){
-		if(strcmp(current->name,path)==0){return 0;}
+	char * mystr = path;
+	while(get_next_header(tar_fd,current)>=0){
+		while(slashes >1){
+			int slashes2 = findSLashes(current->name,'/');
+			char subbuf[sizeof(current->name)];
+			memcpy( subbuf,&mystr[0],sizeof(current->name));
+			if(slashes2 == 1 && strcmp(subbuf,current->name)){
+				 memcpy( mystr,&mystr[size1],sizeof(current->name)-size1);
+				}
+			size1 = sizeof(current->name);
+			
+			
+			}
+			if(strcmp(current->name,mystr)==0){return 0;}
+		
+		
 		}
-    return 0;
+    return -1;
 }
 
 /**
