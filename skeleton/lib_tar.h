@@ -139,4 +139,6 @@ ssize_t read_file(int tar_fd, char *path, size_t offset, uint8_t *dest, size_t *
 
 
 int get_next_header(int tar_fd, tar_header_t *current);
+
+int correct_padding(int size);
 #endif

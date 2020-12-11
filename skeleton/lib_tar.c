@@ -101,11 +101,11 @@ int is_dir(int tar_fd, char *path) {
  *         any other value otherwise.
  */
 int is_file(int tar_fd, char *path) {
-    if(!exists(tar_fd,path))
-        return 0;
     tar_header_t *current=(tar_header_t *) malloc(sizeof(tar_header_t));
     if(read(tar_fd,(void *) current,sizeof(tar_header_t))==-1)
 		fprintf(stderr,"error reading n1");
+    printf("%s\n",current->name);
+    get_next_header(tar_fd,current);
     printf("%s\n",current->name);
     get_next_header(tar_fd,current);
     printf("%s\n",current->name);
@@ -174,12 +174,22 @@ ssize_t read_file(int tar_fd, char *path, size_t offset, uint8_t *dest, size_t *
 }
 
 int get_next_header(int tar_fd, tar_header_t *current){
-    int size=TAR_INT(current->size);
+    int size=correct_padding(TAR_INT(current->size));
     lseek(tar_fd, size,SEEK_CUR);
-    if(read(tar_fd,(void *) current,sizeof(tar_header_t))==-1)
-        printf("read n1");
+    int err=read(tar_fd,(void *) current,sizeof(tar_header_t));
+    if (err==-1){
+        fprintf(stderr,"read n1");
+        return -1;
+    }
+    if (err==EOF)
+        return  -2;
     printf("%ld\n",TAR_INT(current->size));
-    return 0;
+    return err;
 }
 
- 
+int correct_padding(int size){
+    if (size%512!=0){
+        size+=512-(size%512);
+    }
+    return size;
+} 
