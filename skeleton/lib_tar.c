@@ -57,7 +57,8 @@ int exists(int tar_fd, char *path) {
 			char subbuf[sizeof(current->name)];
 			memcpy( subbuf,&mystr[0],sizeof(current->name));
 			if(slashes2 == 1 && strcmp(subbuf,current->name)){
-				 memcpy( mystr,&mystr[size1],sizeof(current->name)-size1);
+				 memcpy( mystr,&mystr[size1],sizeof(mystr)-size1);
+				 slashes --;
 				}
 			size1 = sizeof(current->name);
 			
