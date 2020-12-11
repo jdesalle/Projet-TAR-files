@@ -43,15 +43,13 @@ int findSLashes(char *path, char c){
 	 }
 int exists(int tar_fd, char *path) {
 	int slashes = findSLashes(path,'/');
-	 tar_header_t *current=(tar_header_t *) malloc(sizeof(tar_header_t));
+	tar_header_t *current=(tar_header_t *) malloc(sizeof(tar_header_t));
     if(read(tar_fd,(void *) current,sizeof(tar_header_t))==-1)
 		printf("read n1");
-	
-	
 	int size1 = sizeof(current->name);
 	if(strcmp(current->name,path)==0){return 0;}
 	char * mystr = path;
-	while(get_next_header(tar_fd,current)>=0){
+	while(get_next_header(tar_fd,current)>0){
 		while(slashes >1){
 			int slashes2 = findSLashes(current->name,'/');
 			char subbuf[sizeof(current->name)];
