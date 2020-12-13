@@ -63,7 +63,6 @@ int exists(int tar_fd, char *path) {
 		
 	}
     return 0;
-}
 
 /**
  * Checks whether an entry exists in the archive and is a directory.
