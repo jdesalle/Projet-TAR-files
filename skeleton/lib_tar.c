@@ -145,6 +145,17 @@ int list(int tar_fd, char *path, char **entries, size_t *no_entries) {
 	if(!exists(tar_fd,path)){
 	return 0;}
 	lseek(tar_fd,0,SEEK_SET);
+	if(is_symlink(tar_fd,path)){
+		lseek(tar_fd, -sizeof(tar_header_t),SEEK_CUR);
+		tar_header_t *current=(tar_header_t *) malloc(sizeof(tar_header_t));
+		if(read(tar_fd,(void *) current,sizeof(tar_header_t))==-1)
+			fprintf(stderr,"error reading n1");
+		char mystr[strlen(current->name)+1];
+		memcpy(mystr,&current->name[0],strlen(current->name)-2);
+		mystr[strlen(current->name)-1] = '/';
+		mystr[strlen(current->name)] = '\0';
+		list(tar_fd,mystr,entries,no_entries);
+		}
 	if(is_dir(tar_fd,path)){
 		tar_header_t *current=(tar_header_t *) malloc(sizeof(tar_header_t));
 		if(read(tar_fd,(void *) current,sizeof(tar_header_t))==-1)
@@ -157,7 +168,7 @@ int list(int tar_fd, char *path, char **entries, size_t *no_entries) {
 		return 2;
 		}
 	lseek(tar_fd,0,SEEK_SET);
-	if(is_symlink(tar_fd,path)){return 1;}
+	
 	lseek(tar_fd,0,SEEK_SET);
 	if(is_file(tar_fd,path)){entries[0]=path;
 		return 3;}
