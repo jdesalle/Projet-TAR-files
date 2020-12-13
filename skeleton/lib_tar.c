@@ -1,22 +1,11 @@
-#include "lib_tar.h"
-#include <stdio.h>
-#include <string.h>
+#include "lib_tar.h" 
+#include <stdio.h> 
+#include <string.h> 
 #include <stdlib.h>
-/**
- * Checks whether the archive is valid.
- *
- * Each non-null header of a valid archive has:
- *  - a magic value of "ustar" and a null,
- *  - a version value of "00" and no null,
- *  - a correct checksum
- *
- * @param tar_fd A file descriptor pointing to the start of a file supposed to contain a tar archive.
- *
- * @return a zero or positive value if the archive is valid, representing the number of headers in the archive,
- *         -1 if the archive contains a header with an invalid magic value,
- *         -2 if the archive contains a header with an invalid version value,
- *         -3 if the archive contains a header with an invalid checksum value
- */
+/** * Checks whether the archive is valid. * * Each non-null header of a valid archive has: * - a magic value of "ustar" and a null, * - a version value of "00" and no null, * - a correct checksum 
+ * * @param tar_fd A file descriptor pointing to the start of a file supposed to contain a tar archive. * * @return a zero or positive value if the archive is valid, representing the number of 
+ headers in the archive, * -1 if the archive contains a header with an invalid magic value, * -2 if the archive contains a header with an invalid version value, * -3 if the archive contains a 
+ header with an invalid checksum value */
 int check_archive(int tar_fd) {
     return 0;
 }
@@ -33,20 +22,20 @@ int check_archive(int tar_fd) {
 
 int exists(int tar_fd, char *path) {	
 	tar_header_t *current=(tar_header_t *) malloc(sizeof(tar_header_t));
-    if(read(tar_fd,(void *) current,sizeof(tar_header_t))==-1)
+	if(read(tar_fd,(void *) current,sizeof(tar_header_t))==-1)
 		printf("read n1");
-	
-	if(strcmp(current->name,path)==0){return 0;}
+	printf("Path:%s \n",path);
+        printf("Header:%s \n",current->name);
+	if(strcmp(current->name,path)==0){return 1;}
 	char * mystr = path;
 	while(get_next_header(tar_fd,current)>0){
-	
-			printf("%s ",mystr);
-			printf("%s \n",current->name);
-			if(strcmp(current->name,mystr)==0){return 0;}
-		
-		
+		printf("Path:%s \n",mystr);
+		printf("Header:%s \n",current->name);
+		if(strcmp(current->name,mystr)==0){
+			return 1;
 		}
-    return -1;
+	}
+    return 0;
 }
 
 /**
@@ -60,7 +49,7 @@ int exists(int tar_fd, char *path) {
  */
 int is_dir(int tar_fd, char *path) {
     if(!exists(tar_fd,path))
-        return -1;
+        return 0;
     lseek(tar_fd, -sizeof(tar_header_t),SEEK_CUR);
     tar_header_t *current=(tar_header_t *) malloc(sizeof(tar_header_t));
     read(tar_fd,(void *) current,sizeof(tar_header_t));
@@ -79,17 +68,16 @@ int is_dir(int tar_fd, char *path) {
  *         any other value otherwise.
  */
 int is_file(int tar_fd, char *path) {
+    if(!exists(tar_fd,path))
+        return 0;
+    lseek(tar_fd, -sizeof(tar_header_t),SEEK_CUR);
     tar_header_t *current=(tar_header_t *) malloc(sizeof(tar_header_t));
     if(read(tar_fd,(void *) current,sizeof(tar_header_t))==-1)
-		fprintf(stderr,"error reading n1");
-    printf("%s\n",current->name);
-    get_next_header(tar_fd,current);
-    printf("%s\n",current->name);
-    get_next_header(tar_fd,current);
-    printf("%s\n",current->name);
-    get_next_header(tar_fd,current);
-    printf("%s\n",current->name);
+        fprintf(stderr,"error reading n1");
+    if(current->typeflag==SYMTYPE)
+        return 1;
     return 0;
+
 }
 
 /**
@@ -102,7 +90,7 @@ int is_file(int tar_fd, char *path) {
  */
 int is_symlink(int tar_fd, char *path) {
     if(!exists(tar_fd,path))
-        return -1;
+        return 0;
     lseek(tar_fd, -sizeof(tar_header_t),SEEK_CUR);
     tar_header_t *current=(tar_header_t *) malloc(sizeof(tar_header_t));
     if(read(tar_fd,(void *) current,sizeof(tar_header_t))==-1)
@@ -138,7 +126,6 @@ int list(int tar_fd, char *path, char **entries, size_t *no_entries) {
 			entries[i]=current->name;
 			printf("the file %d , is %s \n",i,current->name);
 			get_next_header(tar_fd,current);
-			
 			}
 		return 2;
 		}
@@ -180,10 +167,10 @@ int get_next_header(int tar_fd, tar_header_t *current){
         fprintf(stderr,"read n1");
         return -1;
     }
-    if (err==EOF)
+    if (err==0){
         return  -2;
-    printf("%ld\n",TAR_INT(current->size));
-    return err;
+   }
+   return err;
 }
 
 int correct_padding(int size){

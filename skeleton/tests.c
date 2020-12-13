@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
         perror("open(tar_file)");
         return -1;
     }
-    is_file(fd,"skeleton");
+    is_file(fd,"skeleton/lib_tar.c");
     int ret = check_archive(fd);
     printf("check_archive returned %d\n", ret);
 
