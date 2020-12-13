@@ -20,20 +20,47 @@ int check_archive(int tar_fd) {
  *         any other value otherwise.
  */
 
-int exists(int tar_fd, char *path) {	
+	
+int exists(int tar_fd, char *path) {
+	
+	
 	tar_header_t *current=(tar_header_t *) malloc(sizeof(tar_header_t));
 	if(read(tar_fd,(void *) current,sizeof(tar_header_t))==-1)
+	
 		printf("read n1");
-	printf("Path:%s \n",path);
+	
         printf("Header:%s \n",current->name);
-	if(strcmp(current->name,path)==0){return 1;}
-	char * mystr = path;
+    if(strcmp(current->name,path)==0){return 1;}
+    if(current->name[strlen(current->name)-1] == '/'){
+		char c = current->name[strlen(current->name)-2];
+		printf("%c    " ,c);
+		char noslash[strlen(current->name)];
+		memcpy(noslash,&current->name[0],strlen(current->name)-2);
+		noslash[strlen(current->name)-2] = c;
+		noslash[strlen(current->name)-1] = '\0';
+		printf("%s \n",noslash);
+		if(strcmp(path,noslash)==0){return 1;}
+		}
+	
+	
 	while(get_next_header(tar_fd,current)>0){
-		printf("Path:%s \n",mystr);
-		printf("Header:%s \n",current->name);
-		if(strcmp(current->name,mystr)==0){
+		if(strcmp(current->name,path)==0){
 			return 1;
 		}
+		printf("%c  ",current->name[strlen(current->name)-1]);
+		if(current->name[strlen(current->name)-1] == '/'){
+		char c = current->name[strlen(current->name)-2];
+		printf("%c    " ,c);
+		char noslash[strlen(current->name)];
+		memcpy(noslash,&current->name[0],strlen(current->name)-2);
+		noslash[strlen(current->name)-2] = c;
+		noslash[strlen(current->name)-1] = '\0';
+		printf("%s \n",noslash);
+		if(strcmp(path,noslash)==0){return 1;}
+		}
+		printf("Path:%s \n",path);
+		printf("Header:%s \n",current->name);
+		
 	}
     return 0;
 }
