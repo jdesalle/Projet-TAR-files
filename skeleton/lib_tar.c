@@ -156,6 +156,7 @@ int list(int tar_fd, char *path, char **entries, size_t *no_entries) {
 		mystr[strlen(current->name)] = '\0';
 		list(tar_fd,mystr,entries,no_entries);
 		}
+	lseek(tar_fd,0,SEEK_SET);
 	if(is_dir(tar_fd,path)){
 		tar_header_t *current=(tar_header_t *) malloc(sizeof(tar_header_t));
 		if(read(tar_fd,(void *) current,sizeof(tar_header_t))==-1)
@@ -167,8 +168,6 @@ int list(int tar_fd, char *path, char **entries, size_t *no_entries) {
 			}
 		return 2;
 		}
-	lseek(tar_fd,0,SEEK_SET);
-	
 	lseek(tar_fd,0,SEEK_SET);
 	if(is_file(tar_fd,path)){entries[0]=path;
 		return 3;}
