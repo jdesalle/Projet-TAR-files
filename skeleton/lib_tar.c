@@ -7,6 +7,11 @@
  headers in the archive, * -1 if the archive contains a header with an invalid magic value, * -2 if the archive contains a header with an invalid version value, * -3 if the archive contains a 
  header with an invalid checksum value */
 int check_archive(int tar_fd) {
+    tar_header_t *current=(tar_header_t *) malloc(sizeof(tar_header_t));
+    if(read(tar_fd,(void *) current,sizeof(tar_header_t))==-1)
+        fprintf(stderr,"error reading  n1");
+    if(TAR_INT(current->chksum)==1)
+      return 1;
     return 0;
 }
 
@@ -20,50 +25,49 @@ int check_archive(int tar_fd) {
  *         any other value otherwise.
  */
 
-	
-int exists(int tar_fd, char *path) {
-	
-	
-	tar_header_t *current=(tar_header_t *) malloc(sizeof(tar_header_t));
-	if(read(tar_fd,(void *) current,sizeof(tar_header_t))==-1)
-	
-		printf("read n1");
-	
-        printf("Header:%s \n",current->name);
-    if(strcmp(current->name,path)==0){return 1;}
-    if(current->name[strlen(current->name)-1] == '/'){
-		char c = current->name[strlen(current->name)-2];
-		printf("%c    " ,c);
-		char noslash[strlen(current->name)];
-		memcpy(noslash,&current->name[0],strlen(current->name)-2);
-		noslash[strlen(current->name)-2] = c;
-		noslash[strlen(current->name)-1] = '\0';
-		printf("%s \n",noslash);
-		if(strcmp(path,noslash)==0){return 1;}
-		}
-	
-	
-	while(get_next_header(tar_fd,current)>0){
-		if(strcmp(current->name,path)==0){
-			return 1;
-		}
-		printf("%c  ",current->name[strlen(current->name)-1]);
-		if(current->name[strlen(current->name)-1] == '/'){
-		char c = current->name[strlen(current->name)-2];
-		printf("%c    " ,c);
-		char noslash[strlen(current->name)];
-		memcpy(noslash,&current->name[0],strlen(current->name)-2);
-		noslash[strlen(current->name)-2] = c;
-		noslash[strlen(current->name)-1] = '\0';
-		printf("%s \n",noslash);
-		if(strcmp(path,noslash)==0){return 1;}
-		}
-		printf("Path:%s \n",path);
-		printf("Header:%s \n",current->name);
-		
-	}
-    return 0;
 
+int exists(int tar_fd, char *path) {
+    tar_header_t *current=(tar_header_t *) malloc(sizeof(tar_header_t));
+    if(read(tar_fd,(void *) current,sizeof(tar_header_t))==-1)
+        fprintf(stderr,"read n1");
+    printf("Header:%s \n",current->name);
+    if(strcmp(current->name,path)==0){
+        return 1;
+    }
+    if(current->name[strlen(current->name)-1] == '/'){
+        char c = current->name[strlen(current->name)-2];
+        printf("%c    " ,c);
+        char noslash[strlen(current->name)];
+        memcpy(noslash,&current->name[0],strlen(current->name)-2);
+        noslash[strlen(current->name)-2] = c;
+        noslash[strlen(current->name)-1] = '\0';
+        printf("%s \n",noslash);
+        if(strcmp(path,noslash)==0){
+            return 1;
+        }
+    }
+    while(get_next_header(tar_fd,current)>0){
+        if(strcmp(current->name,path)==0){
+            return 1;
+        }
+        printf("%c  ",current->name[strlen(current->name)-1]);
+        if(current->name[strlen(current->name)-1] == '/'){
+            char c = current->name[strlen(current->name)-2];
+            printf("%c    " ,c);
+            char noslash[strlen(current->name)];
+            memcpy(noslash,&current->name[0],strlen(current->name)-2);
+            noslash[strlen(current->name)-2] = c;
+            noslash[strlen(current->name)-1] = '\0';
+            printf("%s \n",noslash);
+            if(strcmp(path,noslash)==0){
+                return 1;
+            }
+        }
+        printf("Path:%s \n",path);
+        printf("Header:%s \n",current->name);
+    }
+    return 0;
+}
 /**
  * Checks whether an entry exists in the archive and is a directory.
  *
@@ -79,9 +83,11 @@ int is_dir(int tar_fd, char *path) {
     lseek(tar_fd, -sizeof(tar_header_t),SEEK_CUR);
     tar_header_t *current=(tar_header_t *) malloc(sizeof(tar_header_t));
     read(tar_fd,(void *) current,sizeof(tar_header_t));
-    if(current->typeflag==DIRTYPE){return 1;}  
-	return 0;
-     
+    printf("%c\n", current->typeflag);
+    if((*current).typeflag==DIRTYPE){
+        return 1;
+    }
+    return 0;
 }
 
 /**
@@ -98,12 +104,10 @@ int is_file(int tar_fd, char *path) {
         return 0;
     lseek(tar_fd, -sizeof(tar_header_t),SEEK_CUR);
     tar_header_t *current=(tar_header_t *) malloc(sizeof(tar_header_t));
-    if(read(tar_fd,(void *) current,sizeof(tar_header_t))==-1)
-        fprintf(stderr,"error reading n1");
-    if(current->typeflag==SYMTYPE)
+    read(tar_fd,(void *) current,sizeof(tar_header_t));
+    if(current->typeflag==REGTYPE||current->typeflag==AREGTYPE)
         return 1;
     return 0;
-
 }
 
 /**
@@ -170,7 +174,6 @@ int list(int tar_fd, char *path, char **entries, size_t *no_entries) {
 	lseek(tar_fd,0,SEEK_SET);
 	if(is_file(tar_fd,path)){entries[0]=path;
 		return 3;}
-	
     return 0;
 }
 
@@ -203,7 +206,7 @@ int get_next_header(int tar_fd, tar_header_t *current){
         fprintf(stderr,"read n1");
         return -1;
     }
-    if (err==0){
+    if (err<sizeof(tar_header_t)){
         return  -2;
    }
    return err;
