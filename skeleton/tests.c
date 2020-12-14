@@ -36,13 +36,13 @@ int main(int argc, char **argv) {
         return -1;
     }
     puts("test is_dir (new exists)");
-    is_dir(fd,"skeleton/lib_tar.c");
+    is_dir(fd,"skeleton/Makefile");
     lseek(fd,0,SEEK_SET);
     puts("test is_file (old exists)");
-    is_file(fd,"skeleton/lib_tar.c");
+    is_file(fd,"skeleton/Makefile");
     lseek(fd,0,SEEK_SET);
     puts("test exists");
-    int ret = exists(fd,argv[2]);
+    int ret = check_archive(fd);
     printf("check_archive returned %d\n", ret);
 
     return 0;

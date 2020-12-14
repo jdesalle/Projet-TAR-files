@@ -1,18 +1,49 @@
-#include "lib_tar.h" 
-#include <stdio.h> 
-#include <string.h> 
+#include "lib_tar.h"
+#include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
-/** * Checks whether the archive is valid. * * Each non-null header of a valid archive has: * - a magic value of "ustar" and a null, * - a version value of "00" and no null, * - a correct checksum 
- * * @param tar_fd A file descriptor pointing to the start of a file supposed to contain a tar archive. * * @return a zero or positive value if the archive is valid, representing the number of 
- headers in the archive, * -1 if the archive contains a header with an invalid magic value, * -2 if the archive contains a header with an invalid version value, * -3 if the archive contains a 
- header with an invalid checksum value */
+/** * Checks whether the archive is valid.
+ * * Each non-null header of a valid archive has:
+ * - a magic value of "ustar" and a null,
+ * - a version value of "00" and no null,
+ * - a correct checksum
+ * * @param tar_fd A file descriptor pointing to the start of a file supposed to contain a tar archive.
+ * * @return a zero or positive value if the archive is valid, representing the number of headers in the archive,
+ * -1 if the archive contains a header with an invalid magic value,
+ * -2 if the archive contains a header with an invalid version value,
+ * -3 if the archive contains a header with an invalid checksum value */
+
+long checksum(tar_header_t *current){
+    char *toadd=(char*) current;
+    long sum=0;
+    for (int i=0;i<148;i++){
+        sum+=*toadd;
+        toadd++;
+    }
+    toadd+=8;//we pass the original cheksum
+   sum+=256;//header is computed with cheksum seen as space (32 in ascci table). 8*32=256
+   for (int i=156;i<513;i++){
+        sum+=*toadd;
+        toadd++;
+    }
+   return sum;
+}
+
 int check_archive(int tar_fd) {
     tar_header_t current[sizeof(tar_header_t)];
-    if(read(tar_fd,(void *) current,sizeof(tar_header_t))==-1)
-        fprintf(stderr,"error reading  n1");
-    if(TAR_INT(current->chksum)==1)
-      return 1;
-    return 0;
+    int sum_header=0;
+    read(tar_fd,(void *) current,sizeof(tar_header_t));
+    while (current!=0){
+        if(TAR_INT (current->chksum)!=checksum(current))
+            return -3;
+        if (strcmp(current->magic,TMAGIC)!=0)
+            return -1;
+        if (!(current->version==0&&current->version+1==0))
+            return -2;
+       sum_header++;
+       get_next_header(tar_fd,current);
+    }
+    return sum_header;
 }
 
 /**
