@@ -24,7 +24,23 @@ int check_archive(int tar_fd) {
  * @return zero if no entry at the given path exists in the archive,
  *         any other value otherwise.
  */
-
+int old_exists(int tar_fd, char *path) {	
+	tar_header_t *current=(tar_header_t *) malloc(sizeof(tar_header_t));
+	if(read(tar_fd,(void *) current,sizeof(tar_header_t))==-1)
+		printf("read n1");
+	printf("Path:%s \n",path);
+        printf("Header:%s \n",current->name);
+	if(strcmp(current->name,path)==0){return 1;}
+	char * mystr = path;
+	while(get_next_header(tar_fd,current)>0){
+		printf("Path:%s \n",mystr);
+		printf("Header:%s \n",current->name);
+		if(strcmp(current->name,mystr)==0){
+			return 1;
+		}
+	}
+    return 0;
+}
 
 int exists(int tar_fd, char *path) {
     tar_header_t *current=(tar_header_t *) malloc(sizeof(tar_header_t));
@@ -100,7 +116,7 @@ int is_dir(int tar_fd, char *path) {
  *         any other value otherwise.
  */
 int is_file(int tar_fd, char *path) {
-    if(!exists(tar_fd,path))
+    if(!old_exists(tar_fd,path))
         return 0;
     lseek(tar_fd, -sizeof(tar_header_t),SEEK_CUR);
     tar_header_t *current=(tar_header_t *) malloc(sizeof(tar_header_t));
