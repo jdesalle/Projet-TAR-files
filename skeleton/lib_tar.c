@@ -21,7 +21,8 @@ long checksum(tar_header_t *current){
         toadd++;
     }
     toadd+=8;//we pass the original cheksum
-   sum+=256;//header is computed with cheksum seen as space (32 in ascci table). 8*32=256
+    
+    if(sum!=0){sum+=256;}//header is computed with cheksum seen as space (32 in ascci table). 8*32=256
    for (int i=156;i<513;i++){
         sum+=*toadd;
         toadd++;
@@ -33,12 +34,13 @@ int check_archive(int tar_fd) {
     tar_header_t current[sizeof(tar_header_t)];
     int sum_header=0;
     read(tar_fd,(void *) current,sizeof(tar_header_t));
-    while (current!=0){
-        if(TAR_INT (current->chksum)!=checksum(current))
-            return -3;
+    while (*current!=NULL){
+        if(TAR_INT (current->chksum)!=checksum(current)){
+            printf("%ld,%ld\n",TAR_INT (current->chksum),checksum(current));
+            return -3;}
         if (strcmp(current->magic,TMAGIC)!=0)
             return -1;
-        if (!(current->version==0&&current->version+1==0))
+        if (!(*(current->version)=='0'&&*(current->version+1)=='0'))
             return -2;
        sum_header++;
        get_next_header(tar_fd,current);
