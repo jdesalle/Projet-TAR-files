@@ -160,6 +160,7 @@ int is_symlink(int tar_fd, char *path) {
  */
 int list(int tar_fd, char *path, char **entries, size_t *no_entries) {
 	if(!exists(tar_fd,path)){
+	*no_entries = 0;
 	return 0;}
 	lseek(tar_fd,0,SEEK_SET);
 	if(is_symlink(tar_fd,path)){
