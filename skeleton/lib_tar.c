@@ -34,7 +34,7 @@ int check_archive(int tar_fd) {
     tar_header_t current[sizeof(tar_header_t)];
     int sum_header=0;
     read(tar_fd,(void *) current,sizeof(tar_header_t));
-    while (*current!=NULL){
+    while (current!=0){
         if(TAR_INT (current->chksum)!=checksum(current)){
             printf("%ld,%ld\n",TAR_INT (current->chksum),checksum(current));
             return -3;}
@@ -210,7 +210,29 @@ int list(int tar_fd, char *path, char **entries, size_t *no_entries) {
  *
  */
 ssize_t read_file(int tar_fd, char *path, size_t offset, uint8_t *dest, size_t *len) {
-    return 0;
+    if(!exists(tar_fd,path)){
+        return -1;
+    }
+    lseek(tar_fd,-(sizeof(tar_header_t)),SEEK_CUR);
+    tar_header_t current[sizeof(tar_header_t)];
+    read(tar_fd,(void *) current,sizeof(tar_header_t));
+    int size=correct_padding(TAR_INT(current->size));
+    if(!(current->typeflag==REGTYPE||current->typeflag==AREGTYPE)){
+         return -1;
+    }
+    if (offset>size){
+       return -2;
+    }
+    if(size-offset<=*len){
+        *len=size-offset;
+    }
+    lseek(tar_fd,offset,SEEK_CUR);
+    *len=read(tar_fd,(void *) dest,*len);
+    if(*len !=size-offset){
+        return size-offset-*len;
+    }
+   return 0;
+
 }
 
 int get_next_header(int tar_fd, tar_header_t *current){
@@ -221,7 +243,7 @@ int get_next_header(int tar_fd, tar_header_t *current){
         fprintf(stderr,"read n1");
         return -1;
     }
-    if (err<sizeof(tar_header_t)){
+    if (err!=sizeof(tar_header_t)){
         return  -2;
    }
    return err;
