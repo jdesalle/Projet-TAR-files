@@ -216,7 +216,9 @@ ssize_t read_file(int tar_fd, char *path, size_t offset, uint8_t *dest, size_t *
     lseek(tar_fd,-(sizeof(tar_header_t)),SEEK_CUR);
     tar_header_t current[sizeof(tar_header_t)];
     read(tar_fd,(void *) current,sizeof(tar_header_t));
-    int size=correct_padding(TAR_INT(current->size));
+    printf("reading from  %s \n",current->name);
+    printf("current size: %ld \n",TAR_INT(current->size));
+    int size=TAR_INT(current->size);
     if(!(current->typeflag==REGTYPE||current->typeflag==AREGTYPE)){
          return -1;
     }
@@ -229,6 +231,7 @@ ssize_t read_file(int tar_fd, char *path, size_t offset, uint8_t *dest, size_t *
     lseek(tar_fd,offset,SEEK_CUR);
     *len=read(tar_fd,(void *) dest,*len);
     if(*len !=size-offset){
+       printf ("size readable from offset: %ld\n read:%ld\n diff:%ld\n",size-offset,*len,size-offset-*len);
         return size-offset-*len;
     }
    return 0;

@@ -35,8 +35,11 @@ int main(int argc, char **argv) {
         perror("open(tar_file)");
         return -1;
     }
-    puts("test is_dir (new exists)");
-    is_dir(fd,"skeleton/Makefile");
+    puts("test readfile ");
+    char testdest[400];
+    size_t test=400;
+    read_file(fd,"skeleton/lib_tar.c",0,(uint8_t *)&testdest,&test);
+    printf("%s\n",testdest);
     lseek(fd,0,SEEK_SET);
     puts("test is_file (old exists)");
     is_file(fd,"skeleton/Makefile");
