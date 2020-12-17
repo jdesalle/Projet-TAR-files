@@ -159,6 +159,7 @@ int is_symlink(int tar_fd, char *path) {
  *         any other value otherwise.
  */
 
+
 int countslashes(char* mystr){
 	int len =strlen(mystr);
 	int count = 0;
@@ -216,9 +217,9 @@ int list(int tar_fd, char *path, char **entries, size_t *no_entries) {
 		if (slashpath == 0){
 			char pathlink[strlen(current->linkname)];
 			strcpy(pathlink,current->linkname);
-			if(pathlink[strlen(pathlink)] !='/'){
-			pathlink[strlen(pathlink)] ='/';
-			pathlink[strlen(pathlink)-3] ='\0';}
+			if(pathlink[strlen(current->linkname)] !='/'){
+			pathlink[strlen(current->linkname)] ='/';
+			pathlink[strlen(current->linkname)+1] ='\0';}
 			lseek(tar_fd,0,SEEK_SET);
 			return list(tar_fd,pathlink,entries,no_entries);
 			printf("%s le pathlink est \n",pathlink);
@@ -234,8 +235,10 @@ int list(int tar_fd, char *path, char **entries, size_t *no_entries) {
 			memcpy(path2,&current->linkname[3],strlen(current->linkname));
 			
 			strcat(path1,path2);
-			path1[strlen(path1)] ='/';
-			path1[strlen(path1)] ='\0';
+			if(path1[strlen(path1)] !='/'){
+				path1[strlen(path1)] ='/';
+				path1[strlen(path1)] ='\0';}
+			
 			
 			
 			lseek(tar_fd,0,SEEK_SET);
@@ -245,17 +248,18 @@ int list(int tar_fd, char *path, char **entries, size_t *no_entries) {
 		printf("%d",lenpath1);
 		char path1[lenpath1];
 		char path2[strlen(current->linkname)];
-		memcpy(path1,&path[0],lenpath1-1);
-		path1[strlen(path1)] ='/';
-		path1[strlen(path1)-3] ='\0';
+		memcpy(path1,&path[0],lenpath1);
+		path1[lenpath1] ='\0';
+		
 		printf("\n le path1 %s \n",path1);
 		memcpy(path2,&current->linkname[0],strlen(current->linkname));
-		path2[strlen(path2)] ='/';
-		path2[strlen(path2)-4] ='\0';
+		path2[strlen(path2)] ='\0';
 		
 		strcat(path1,path2);
-		path1[strlen(path1)] = '/';
-		path1[strlen(path1)] = '\0';
+		
+		if(path1[lenpath1+strlen(current->linkname)] !='/'){
+				path1[lenpath1+strlen(current->linkname)] ='/';
+				path1[lenpath1+strlen(current->linkname)+1] ='\0';}
 		printf("%s le path1 ",path1);
 		lseek(tar_fd,0,SEEK_SET);
 		return list(tar_fd,path1,entries,no_entries);}
@@ -264,6 +268,17 @@ int list(int tar_fd, char *path, char **entries, size_t *no_entries) {
 		
 	lseek(tar_fd,0,SEEK_SET);
 	if(is_dir(tar_fd,path)){
+		
+		if(path[strlen(path)-1] != '/'){
+			
+			char mystr[strlen(path)+1];
+			strcpy(mystr,path);
+			strcat(mystr,"/\0");
+			fprintf(stdout,"%s le path \n",path);
+			printf("%d ",strcmp(mystr,"folder1/"));
+			lseek(tar_fd,0,SEEK_SET);
+			return list(tar_fd,mystr,entries,no_entries);
+			}
 		printf("pour un path correspondant à %s \n",path);		
 		lseek(tar_fd,0,SEEK_SET);
 		int slash = countslashes(path);
