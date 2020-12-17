@@ -159,7 +159,7 @@ int is_symlink(int tar_fd, char *path) {
  *         any other value otherwise.
  */
 
-
+//compte le nombre de /
 int countslashes(char* mystr){
 	int len =strlen(mystr);
 	int count = 0;
@@ -169,6 +169,8 @@ int countslashes(char* mystr){
 		}
 	return count;
 	}
+	
+// compte la longueur d'un string pour un certains nombre de /	
 int count_len(int slash,char*mystr){
 	int longueur = 0;
 	int slash2 = 0;
@@ -178,42 +180,33 @@ int count_len(int slash,char*mystr){
 			slash2 ++;
 			}
 		longueur ++;
-		
-		
 		}
 	return longueur;
 	}
-int contains(char* path,char** entries,int len){
-		for(int i = 0; i<len;i++){
-			if(strcmp(path,entries[i]) == 0){
-				
-				return 1;}
-			}
-		return 0;
-	}
+
+
 int list(int tar_fd, char *path, char **entries, size_t *no_entries) {
 	
 	if(strcmp(path,"")==0){
 		*no_entries = 0;
 		return 0;
-		}
+	}
+		
 	if(!exists(tar_fd,path)){
 	printf("\n %s nexiste pas \n",path);	
 	*no_entries = 0;
-	return 0;}
-	
+	return 0;
+	}
 	lseek(tar_fd,0,SEEK_SET);
+	//cas des symlink
 	if(is_symlink(tar_fd,path)){
-		
-		
 		lseek(tar_fd, -sizeof(tar_header_t),SEEK_CUR);
 		tar_header_t current[sizeof(tar_header_t)];
 		if(read(tar_fd,(void *) current,sizeof(tar_header_t))==-1)
 			fprintf(stderr,"error reading n1");
-		printf("%s le linkname",current->linkname);
 		int slashpath = countslashes(path);
 		int lenpath1 = count_len(slashpath,path);
-		// ok cas direct 
+		// ok cas direct si le path ne contient pas de / en return avec le linkname
 		if (slashpath == 0){
 			char pathlink[strlen(current->linkname)];
 			strcpy(pathlink,current->linkname);
@@ -222,164 +215,109 @@ int list(int tar_fd, char *path, char **entries, size_t *no_entries) {
 			pathlink[strlen(current->linkname)+1] ='\0';}
 			lseek(tar_fd,0,SEEK_SET);
 			return list(tar_fd,pathlink,entries,no_entries);
-			printf("%s le pathlink est \n",pathlink);
-			}
-		//ok cas en arrière
+		}
+		//ok cas en arrière si il y a ../ dans le linkname il faut retourner en arriere dans le path
 		if(current->linkname[0] == '.' && current->linkname[1] == '.'){
+			//dimminution du path
 			slashpath -=1;
 			int len2 = count_len(slashpath,path);
-			printf("% d ",len2);
 			char path1[len2];
 			char path2[strlen(current->linkname)];
 			memcpy(path1,&path[0],len2);
 			memcpy(path2,&current->linkname[3],strlen(current->linkname));
-			
 			strcat(path1,path2);
+			//il faut gérer le cas ou le linkname n'a pas de / à la fin
 			if(path1[strlen(path1)] !='/'){
 				path1[strlen(path1)] ='/';
-				path1[strlen(path1)] ='\0';}
+				path1[strlen(path1)] ='\0';
+			}
+			lseek(tar_fd,0,SEEK_SET);
+			return list(tar_fd,path1,entries,no_entries);
+		}
+		//les autres cas(return path+linkname)
+		else{
 			
-			
-			
+			char path1[lenpath1];
+			char path2[strlen(current->linkname)];
+			memcpy(path1,&path[0],lenpath1);
+			path1[lenpath1] ='\0';
+			memcpy(path2,&current->linkname[0],strlen(current->linkname));
+			path2[strlen(path2)] ='\0';
+			strcat(path1,path2);
+			if(path1[lenpath1+strlen(current->linkname)] !='/'){
+				path1[lenpath1+strlen(current->linkname)] ='/';
+				path1[lenpath1+strlen(current->linkname)+1] ='\0';
+			}
+			printf("%s le path1 ",path1);
 			lseek(tar_fd,0,SEEK_SET);
 			return list(tar_fd,path1,entries,no_entries);
 			}
-		else{
-		printf("%d",lenpath1);
-		char path1[lenpath1];
-		char path2[strlen(current->linkname)];
-		memcpy(path1,&path[0],lenpath1);
-		path1[lenpath1] ='\0';
-		
-		printf("\n le path1 %s \n",path1);
-		memcpy(path2,&current->linkname[0],strlen(current->linkname));
-		path2[strlen(path2)] ='\0';
-		
-		strcat(path1,path2);
-		
-		if(path1[lenpath1+strlen(current->linkname)] !='/'){
-				path1[lenpath1+strlen(current->linkname)] ='/';
-				path1[lenpath1+strlen(current->linkname)+1] ='\0';}
-		printf("%s le path1 ",path1);
-		lseek(tar_fd,0,SEEK_SET);
-		return list(tar_fd,path1,entries,no_entries);}
-			}
-		
-		
+		}	
 	lseek(tar_fd,0,SEEK_SET);
 	if(is_dir(tar_fd,path)){
-		
+		//si le dossier n'as pas de / à la fin
 		if(path[strlen(path)-1] != '/'){
-			
 			char mystr[strlen(path)+1];
 			strcpy(mystr,path);
 			strcat(mystr,"/\0");
-			fprintf(stdout,"%s le path \n",path);
-			printf("%d ",strcmp(mystr,"folder1/"));
 			lseek(tar_fd,0,SEEK_SET);
 			return list(tar_fd,mystr,entries,no_entries);
-			}
+		}
 		printf("pour un path correspondant à %s \n",path);		
 		lseek(tar_fd,0,SEEK_SET);
+		//on compte les slash du path ainsi que la longueur jusqu'au dossier indiqué
 		int slash = countslashes(path);
 		tar_header_t current[sizeof(tar_header_t)];
 		int count = 0;
-		
 		while(get_next_header(tar_fd,current)>0){
-		
+			//compteur dépassé
 			if(count>= *no_entries){
 				*no_entries = count;
 				return 1;
-				}	
-		//folder	
-				if(countslashes(current->name) == 1 && slash ==0){
-					
-					if(count_len(slash+1,current->name)>=strlen(current->name)){
-						
-						char buff[strlen(current->name)-count_len(slash,current->name)];
-						memcpy(buff,&current->name[count_len(slash,current->name)-1],strlen(current->name)-count_len(slash,current->name)+1);
-						buff[strlen(current->name)-count_len(slash,current->name)+1] = '\0';
-							strcpy(entries[count],buff);
-							printf("l'entrée folder %d,est %s \n",count,entries[count]);
-							count++;
-							
-						
-						}
-					}
-					if(countslashes(current->name) == 0 && slash ==0){
-						
-						if(strlen(current->name) >0 ){
-						char buff[strlen(current->name)-count_len(slash,current->name)];
-						memcpy(buff,&current->name[count_len(slash,current->name)-1],strlen(current->name)-count_len(slash,current->name)+1);
-						buff[strlen(current->name)-count_len(slash,current->name)+1] = '\0';
-						
-							strcpy(entries[count],buff);
-							printf("l'entrée file %d,est %s \n",count,entries[count]);
-							count++;
-							
-						
-						
-						}
-					}
-					
-					
-					
-				if(countslashes(current->name) == slash+1 && slash !=0){
-				
-					if(count_len(slash+1,current->name)>= strlen(current->name)){
-						
-						char buff[strlen(current->name)-count_len(slash,current->name)];
-						memcpy(buff,&current->name[count_len(slash,current->name)],strlen(current->name)-count_len(slash,current->name)+1);
-						buff[strlen(current->name)-count_len(slash,current->name)] = '\0';
-						
-							
-							strcpy(entries[count],buff);
-							printf("l'entrée %d,est %s \n",count,entries[count]);
-							count++;
-							
-						
-						}
-					}
-				if(countslashes(current->name) == slash && slash !=0){
-					if(count_len(slash,current->name)<strlen(current->name) ){
-						
-						char buff[strlen(current->name)-count_len(slash,current->name)];
-						memcpy(buff,&current->name[count_len(slash,current->name)],strlen(current->name)-count_len(slash,current->name)+1);
-						buff[strlen(current->name)-count_len(slash,current->name)] = '\0';
-						
-							strcpy(entries[count],buff);
-							printf("l'entrée %d,est %s \n",count,entries[count]);
-							count++;
-							
-						
-						
-						}
-					}
-				
-				}	
-			*no_entries = count;
-			return 1;	
+			}	
+			//conditions si le header est un fichier + conditions pour ne pas aller plus loin + cas début de l'archive	
+			if(countslashes(current->name) == 1 && slash ==0&& count_len(slash+1,current->name)>=strlen(current->name)){
+				char buff[strlen(current->name)-count_len(slash,current->name)];
+				memcpy(buff,&current->name[count_len(slash,current->name)-1],strlen(current->name)-count_len(slash,current->name)+1);
+				buff[strlen(current->name)-count_len(slash,current->name)+1] = '\0';
+				strcpy(entries[count],buff);
+				printf("l'entrée folder %d,est %s \n",count,entries[count]);
+				count++;			
+			}
+			//conditions si le header est un fichier + conditions pour ne pas aller plus loin + cas debut de l'archive
+			if(countslashes(current->name) == 0 && slash ==0 && strlen(current->name) >0){
+				char buff[strlen(current->name)-count_len(slash,current->name)];
+				memcpy(buff,&current->name[count_len(slash,current->name)-1],strlen(current->name)-count_len(slash,current->name)+1);
+				buff[strlen(current->name)-count_len(slash,current->name)+1] = '\0';		
+				strcpy(entries[count],buff);
+				printf("l'entrée file %d,est %s \n",count,entries[count]);
+				count++;
+			}
+			//cas dossier avec un path contenant des /
+			if(countslashes(current->name) == slash+1 && slash !=0 && count_len(slash+1,current->name)>= strlen(current->name)){
+				char buff[strlen(current->name)-count_len(slash,current->name)];
+				memcpy(buff,&current->name[count_len(slash,current->name)],strlen(current->name)-count_len(slash,current->name)+1);
+				buff[strlen(current->name)-count_len(slash,current->name)] = '\0';		
+				strcpy(entries[count],buff);
+				printf("l'entrée %d,est %s \n",count,entries[count]);
+				count++;						
+			}
+			//cas du fichier avec path contenant des /
+			if(countslashes(current->name) == slash && slash !=0 && count_len(slash,current->name)<strlen(current->name)){
+				char buff[strlen(current->name)-count_len(slash,current->name)];
+				memcpy(buff,&current->name[count_len(slash,current->name)],strlen(current->name)-count_len(slash,current->name)+1);
+				buff[strlen(current->name)-count_len(slash,current->name)] = '\0';
+				strcpy(entries[count],buff);
+				printf("l'entrée %d,est %s \n",count,entries[count]);
+				count++;
+			}	
 		}
-	
-			printf(" ici c'est les files");
-			lseek(tar_fd, -sizeof(tar_header_t),SEEK_CUR);
-			tar_header_t current[sizeof(tar_header_t)];
-			if(read(tar_fd,(void *) current,sizeof(tar_header_t))==-1)
-				fprintf(stderr,"error reading n1");
-			int slash = countslashes(path);
-			char buff[strlen(current->name)-count_len(slash,current->name)];
-			memcpy(buff,&current->name[count_len(slash,current->name)],strlen(current->name)-count_len(slash,current->name)+1);
-			buff[strlen(current->name)-count_len(slash,current->name)] = '\0';
-						
-			strcpy(entries[0],buff);
-			printf("l'entrée %d,est %s \n",0,entries[0]);
-			
-			
-			*no_entries = 1;
-			return 1;
-			
-	
-
+	//tous les header sont parcourus		
+	*no_entries = count;
+	return 1;	
+	}
+	*no_entries = 0;
+	return 0;
 }
 /**
  * Reads a file at a given path in the archive.
