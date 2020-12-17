@@ -236,7 +236,6 @@ int list(int tar_fd, char *path, char **entries, size_t *no_entries) {
 		}
 		//les autres cas(return path+linkname)
 		else{
-			
 			char path1[lenpath1];
 			char path2[strlen(current->linkname)];
 			memcpy(path1,&path[0],lenpath1);
@@ -251,8 +250,8 @@ int list(int tar_fd, char *path, char **entries, size_t *no_entries) {
 			printf("%s le path1 ",path1);
 			lseek(tar_fd,0,SEEK_SET);
 			return list(tar_fd,path1,entries,no_entries);
-			}
-		}	
+		}
+	}
 	lseek(tar_fd,0,SEEK_SET);
 	if(is_dir(tar_fd,path)){
 		//si le dossier n'as pas de / à la fin
@@ -343,13 +342,63 @@ ssize_t read_file(int tar_fd, char *path, size_t offset, uint8_t *dest, size_t *
     lseek(tar_fd,-(sizeof(tar_header_t)),SEEK_CUR);
     tar_header_t current[sizeof(tar_header_t)];
     read(tar_fd,(void *) current,sizeof(tar_header_t));
+//cas des symlink
+	if(current->typeflag==SYMTYPE){
+		int slashpath = countslashes(path);
+		int lenpath1 = count_len(slashpath,path);
+		// ok cas direct si le path ne contient pas de / en return avec le linkname
+		if (slashpath == 0){
+			char pathlink[strlen(current->linkname)];
+			strcpy(pathlink,current->linkname);
+			if(pathlink[strlen(current->linkname)] !='/'){
+			pathlink[strlen(current->linkname)] ='/';
+			pathlink[strlen(current->linkname)+1] ='\0';}
+			lseek(tar_fd,0,SEEK_SET);
+			return read_file(tar_fd,pathlink,offset,dest,len);
+		}
+		//ok cas en arrière si il y a ../ dans le linkname il faut retourner en arriere dans le path
+		if(current->linkname[0] == '.' && current->linkname[1] == '.'){
+			//dimminution du path
+			slashpath -=1;
+			int len2 = count_len(slashpath,path);
+			char path1[len2];
+			char path2[strlen(current->linkname)];
+			memcpy(path1,&path[0],len2);
+			memcpy(path2,&current->linkname[3],strlen(current->linkname));
+			strcat(path1,path2);
+			//il faut gérer le cas ou le linkname n'a pas de / à la fin
+			if(path1[strlen(path1)] !='/'){
+				path1[strlen(path1)] ='/';
+				path1[strlen(path1)] ='\0';
+			}
+			lseek(tar_fd,0,SEEK_SET);
+			return read_file(tar_fd,path1,offset,dest,len);
+		}
+		//les autres cas(return path+linkname)
+		else{
+			char path1[lenpath1];
+			char path2[strlen(current->linkname)];
+			memcpy(path1,&path[0],lenpath1);
+			path1[lenpath1] ='\0';
+			memcpy(path2,&current->linkname[0],strlen(current->linkname));
+			path2[strlen(path2)] ='\0';
+			strcat(path1,path2);
+			if(path1[lenpath1+strlen(current->linkname)] !='/'){
+				path1[lenpath1+strlen(current->linkname)] ='/';
+				path1[lenpath1+strlen(current->linkname)+1] ='\0';
+			}
+			printf("%s le path1 ",path1);
+			lseek(tar_fd,0,SEEK_SET);
+			return read_file(tar_fd,path1,offset,dest,len);
+		}
+	}
     printf("reading from  %s \n",current->name);
     printf("current size: %ld \n",TAR_INT(current->size));
     int size=TAR_INT(current->size);
     if(!(current->typeflag==REGTYPE||current->typeflag==AREGTYPE)){
          return -1;
     }
-    if (offset>size){
+    if (offset>=size){
        return -2;
     }
     if(size-offset<=*len){
