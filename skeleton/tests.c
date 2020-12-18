@@ -38,11 +38,12 @@ int main(int argc, char **argv) {
     puts("test readfile ");
     char testdest[400];
     size_t test=400;
-    read_file(fd,"skeleton/lib_tar.c",0,(uint8_t *)&testdest,&test);
+    int err=read_file(fd,"skeletonn",400,(uint8_t *)&testdest,&test);
+    printf("return value :%d\n",err);
     printf("%s\n",testdest);
     lseek(fd,0,SEEK_SET);
     puts("test is_file (old exists)");
-    is_file(fd,"skeleton/Makefile");
+    is_file(fd,"skeleton/Makefil");
     lseek(fd,0,SEEK_SET);
     puts("test exists");
     int ret = check_archive(fd);

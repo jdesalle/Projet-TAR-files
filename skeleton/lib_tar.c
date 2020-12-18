@@ -1,3 +1,4 @@
+
 #include "lib_tar.h"
 #include <stdio.h>
 #include <string.h>
@@ -21,8 +22,7 @@ long checksum(tar_header_t *current){
         toadd++;
     }
     toadd+=8;//we pass the original cheksum
-    
-    if(sum!=0){sum+=256;}//header is computed with cheksum seen as space (32 in ascci table). 8*32=256
+   sum+=256;//header is computed with cheksum seen as space (32 in ascci table). 8*32=256
    for (int i=156;i<513;i++){
         sum+=*toadd;
         toadd++;
@@ -31,10 +31,12 @@ long checksum(tar_header_t *current){
 }
 
 int check_archive(int tar_fd) {
+    puts("checking archive");
     tar_header_t current[sizeof(tar_header_t)];
     int sum_header=0;
-    read(tar_fd,(void *) current,sizeof(tar_header_t));
-    while (current!=0){
+    int err=read(tar_fd,(void *) current,sizeof(tar_header_t));
+    while (err>0){
+        printf("current header:%s\n",current->name);
         if(TAR_INT (current->chksum)!=checksum(current)){
             printf("%ld,%ld\n",TAR_INT (current->chksum),checksum(current));
             return -3;}
@@ -43,7 +45,7 @@ int check_archive(int tar_fd) {
         if (!(*(current->version)=='0'&&*(current->version+1)=='0'))
             return -2;
        sum_header++;
-       get_next_header(tar_fd,current);
+       err=get_next_header(tar_fd,current);
     }
     return sum_header;
 }
@@ -62,6 +64,7 @@ int check_archive(int tar_fd) {
 int exists(int tar_fd, char *path) {
     tar_header_t current[sizeof(tar_header_t)];
     while(get_next_header(tar_fd,current)>0){
+        printf(" path %s\n current:%s\n",path,current->name);
         if(strcmp(current->name,path)==0){
             return 1;
         }
@@ -345,10 +348,6 @@ ssize_t read_file(int tar_fd, char *path, size_t offset, uint8_t *dest, size_t *
     printf("reading from  %s \n",current->name);
     printf("current size: %ld \n",TAR_INT(current->size));
     int size=TAR_INT(current->size);
-    
-    
-    
-    
     if(current->typeflag == SYMTYPE){
 		printf("c'est un symlink \n");
 		int slashpath = countslashes(path);
@@ -376,7 +375,6 @@ ssize_t read_file(int tar_fd, char *path, size_t offset, uint8_t *dest, size_t *
 		}
 		//les autres cas(return path+linkname)
 		else{
-			
 			char path1[lenpath1];
 			memcpy(path1,&path[0],lenpath1);
 			path1[lenpath1]='\0';
@@ -385,13 +383,12 @@ ssize_t read_file(int tar_fd, char *path, size_t offset, uint8_t *dest, size_t *
 			return read_file(tar_fd,path1,offset,dest,len);
 			}
 	}
-    if(!(current->typeflag==REGTYPE||current->typeflag==AREGTYPE)){
+    if((!(current->typeflag==REGTYPE))&&(!(current->typeflag==AREGTYPE))){
          return -1;
     }
-    if (offset>size){
+    if (offset>=size){
        return -2;
     }
-	
     if(size-offset<=*len){
         *len=size-offset;
     }
@@ -409,13 +406,9 @@ int get_next_header(int tar_fd, tar_header_t *current){
     int size=correct_padding(TAR_INT(current->size));
     lseek(tar_fd, size,SEEK_CUR);
     int err=read(tar_fd,(void *) current,sizeof(tar_header_t));
-    if (err==-1){
-        fprintf(stderr,"read n1");
-        return -1;
+    if (checksum(current)==256){
+        return -2;
     }
-    if (err!=sizeof(tar_header_t)){
-        return  -2;
-   }
    return err;
 }
 
