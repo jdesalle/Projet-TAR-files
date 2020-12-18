@@ -386,7 +386,7 @@ ssize_t read_file(int tar_fd, char *path, size_t offset, uint8_t *dest, size_t *
     if((!(current->typeflag==REGTYPE))&&(!(current->typeflag==AREGTYPE))){
          return -1;
     }
-    if (offset>=size){
+    if (offset>size){
        return -2;
     }
     if(size-offset<=*len){
