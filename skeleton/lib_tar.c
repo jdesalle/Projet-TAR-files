@@ -338,57 +338,56 @@ int list(int tar_fd, char *path, char **entries, size_t *no_entries) {
  *         a positive value if the file was partially read, representing the remaining bytes left to be read.
  *
  */
+ 
+ void comparaison(char* a,char* b,int len){
+	 for(int i = 0; i<len;i++){
+		 if(a[i] != b[i]){
+			 printf("le char %c est différent de %c à la position %d\n",a[i],b[i],i);
+			 }
+		 }
+	 }
 ssize_t read_file(int tar_fd, char *path, size_t offset, uint8_t *dest, size_t *len) {
+
+	
     if(!exists(tar_fd,path)){
+		printf("Le path: %s n'existe pas \n",path);
+		*len = 0;
         return -1;
+    }  
+    if(is_symlink(tar_fd,path)){
+		lseek(tar_fd,-(sizeof(tar_header_t)),SEEK_CUR);
+		tar_header_t current[sizeof(tar_header_t)];
+		read(tar_fd,(void *) current,sizeof(tar_header_t));
+		return read_file(tar_fd,current->linkname,offset,dest,len);
+	}
+	else{
+		lseek(tar_fd,0,SEEK_SET);
+		}
+	if(!exists(tar_fd,path)){
+	printf("Le path: %s n'existe pas \n",path);
+	*len = 0;
+	return -1;
     }
-    lseek(tar_fd,-(sizeof(tar_header_t)),SEEK_CUR);
+    if(strcmp(path,"")==0){
+		*len = 0;
+		return -1;
+	}
+	lseek(tar_fd,-(sizeof(tar_header_t)),SEEK_CUR);
     tar_header_t current[sizeof(tar_header_t)];
     read(tar_fd,(void *) current,sizeof(tar_header_t));
     printf("reading from  %s \n",current->name);
     printf("current size: %ld \n",TAR_INT(current->size));
     int size=TAR_INT(current->size);
-    if(current->typeflag == SYMTYPE){
-		printf("c'est un symlink \n");
-		int slashpath = countslashes(path);
-		int lenpath1 = count_len(slashpath,path);
-		// ok cas direct si le path ne contient pas de / en return avec le linkname
-		if (slashpath == 0){
-			char pathlink[strlen(current->linkname)];
-			strcpy(pathlink,current->linkname);
-			lseek(tar_fd,0,SEEK_SET);
-			return read_file(tar_fd,pathlink,offset,dest,len);
-		}
-		//ok cas en arrière si il y a ../ dans le linkname il faut retourner en arriere dans le path
-		if(current->linkname[0] == '.' && current->linkname[1] == '.'){
-			//dimminution du path
-			slashpath -=1;
-			int len2 = count_len(slashpath,path);
-			char path1[len2];
-			char path2[strlen(current->linkname)];
-			memcpy(path1,&path[0],len2);
-			memcpy(path2,&current->linkname[3],strlen(current->linkname));
-			strcat(path1,path2);
-			//il faut gérer le cas ou le linkname n'a pas de / à la fin
-			lseek(tar_fd,0,SEEK_SET);
-			return read_file(tar_fd,path1,offset,dest,len);
-		}
-		//les autres cas(return path+linkname)
-		else{
-			char path1[lenpath1];
-			memcpy(path1,&path[0],lenpath1);
-			path1[lenpath1]='\0';
-			strcat(path1,current->linkname);
-			lseek(tar_fd,0,SEEK_SET);
-			return read_file(tar_fd,path1,offset,dest,len);
-			}
-	}
+    
     if((!(current->typeflag==REGTYPE))&&(!(current->typeflag==AREGTYPE))){
+		*len = 0;
          return -1;
     }
     if (offset>size){
+		*len = 0;
        return -2;
     }
+    // ce qui est possible de lire < normalement à lire
     if(size-offset<=*len){
         *len=size-offset;
     }
